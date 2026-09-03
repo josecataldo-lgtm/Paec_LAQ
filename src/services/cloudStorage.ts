@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { supabase, checkIsConfigured, updateSupabaseConfig } from './supabaseClient';
 import { EstudiantePAEC, HitoPedagogico, EpisodioDesregulacion, EscuelaConfig } from '../types';
 import { ESTUDIANTES_INICIALES, HITOS_INICIALES, EPISODIOS_INICIALES, ESCUELA_DEFAULT } from '../data/defaultData';
 
@@ -15,7 +15,7 @@ type StatusListener = (status: SyncStatus, details?: string) => void;
 
 class CloudStorageService {
   private statusListeners: Set<StatusListener> = new Set();
-  private currentStatus: SyncStatus = isSupabaseConfigured ? 'synced' : 'local_only';
+  private currentStatus: SyncStatus = checkIsConfigured() ? 'synced' : 'local_only';
   private saveDebounceTimer: any = null;
 
   public onStatusChange(listener: StatusListener) {
@@ -34,21 +34,66 @@ class CloudStorageService {
   }
 
   public isCloudConnected(): boolean {
-    return isSupabaseConfigured;
+    return checkIsConfigured();
+  }
+
+  /**
+   * Conectar con nuevas credenciales ingresadas por el usuario
+   */
+  public async configureAndSync(url: string, key: string, currentData: PaecAppData): Promise<{ success: boolean; message: string }> {
+    const ok = updateSupabaseConfig(url, key);
+    if (!ok) {
+      this.setStatus('local_only', 'Configuración de Supabase borrada o inválida');
+      return { success: false, message: 'La URL o la clave ingresada no es válida. La URL debe empezar con https://' };
+    }
+
+    this.setStatus('syncing', 'Probando conexión con Supabase...');
+    try {
+      if (!supabase) throw new Error('Cliente Supabase no inicializado');
+
+      // 1. Probar lectura
+      const { data, error } = await supabase
+        .from('sincronizacion_global')
+        .select('data, updated_at')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (error) {
+        // Error de tabla no creada o permisos
+        if (error.code === '42P01' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          this.setStatus('error', 'Tabla no encontrada. Ejecuta el script SQL en Supabase.');
+          return { success: false, message: 'Falta crear la tabla en Supabase. Ve a Supabase > SQL Editor y ejecuta el script.' };
+        }
+        this.setStatus('error', error.message);
+        return { success: false, message: `Error de Supabase: ${error.message}` };
+      }
+
+      // 2. Si ya hay datos en la nube, sincronizar
+      if (data?.data) {
+        this.setLocalCache(data.data as PaecAppData);
+        this.setStatus('synced', 'Conectado exitosamente a la base de datos en la nube');
+        return { success: true, message: '¡Conectado exitosamente! Datos recuperados de la nube.' };
+      } else {
+        // Si no hay datos en la nube aún, subir los actuales
+        await this.saveToCloud(currentData);
+        this.setStatus('synced', 'Conectado exitosamente y datos locales subidos a la nube');
+        return { success: true, message: '¡Conectado exitosamente! Tus datos locales han sido respaldados en la nube.' };
+      }
+    } catch (err: any) {
+      this.setStatus('error', err.message || 'Error de conexión');
+      return { success: false, message: `Error al conectar con la base de datos: ${err.message}` };
+    }
   }
 
   /**
    * Carga los datos iniciales desde la nube o caché local
    */
   public async loadInitialData(): Promise<PaecAppData> {
-    // 1. Obtener caché local primero
     const localData = this.getLocalCache();
 
-    // 2. Si Supabase está configurado, intentar cargar desde la nube
-    if (isSupabaseConfigured && supabase) {
+    if (checkIsConfigured() && supabase) {
       this.setStatus('syncing', 'Conectando con la base de datos en la nube...');
       try {
-        // Intentar leer de la tabla consolidada sincronizacion_global
         const { data, error } = await supabase
           .from('sincronizacion_global')
           .select('data, updated_at')
@@ -64,7 +109,6 @@ class CloudStorageService {
           this.setStatus('synced', 'Datos cargados desde la nube');
           return cloudData;
         } else {
-          // Si no hay datos en la nube aún, subir los datos locales iniciales
           console.log('Primera sincronización: subiendo datos a Supabase...');
           await this.saveToCloud(localData);
           this.setStatus('synced', 'Nube inicializada');
@@ -75,7 +119,6 @@ class CloudStorageService {
         this.setStatus('offline', 'Modo sin conexión');
       }
     } else {
-      // Intentar API backend local si existe
       try {
         const res = await fetch('/api/data', { method: 'GET' });
         if (res.ok) {
@@ -86,12 +129,10 @@ class CloudStorageService {
             return serverData;
           }
         }
-      } catch {
-        // Servidor no disponible o modo estático
-      }
+      } catch {}
     }
 
-    this.setStatus(isSupabaseConfigured ? 'synced' : 'local_only');
+    this.setStatus(checkIsConfigured() ? 'synced' : 'local_only');
     return localData;
   }
 
@@ -99,11 +140,9 @@ class CloudStorageService {
    * Guarda cambios con debounce en la nube y de forma inmediata en local
    */
   public async saveAll(appData: PaecAppData, immediate = false): Promise<void> {
-    // 1. Guardar de inmediato en local
     this.setLocalCache(appData);
 
-    // 2. Guardar en la nube
-    if (isSupabaseConfigured && supabase) {
+    if (checkIsConfigured() && supabase) {
       this.setStatus('syncing', 'Guardando cambios en la nube...');
       
       if (this.saveDebounceTimer) {
@@ -118,7 +157,6 @@ class CloudStorageService {
         }, 1200);
       }
     } else {
-      // Intentar endpoint de servidor
       try {
         fetch('/api/data/sync', {
           method: 'POST',
@@ -155,9 +193,6 @@ class CloudStorageService {
     }
   }
 
-  /**
-   * Respaldo en LocalStorage
-   */
   private getLocalCache(): PaecAppData {
     try {
       const st = localStorage.getItem('paec_estudiantes_v1');
