@@ -30,7 +30,8 @@ import {
   ShieldAlert,
   Edit3,
   Trash2,
-  Copy
+  Copy,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { StudentCard } from './components/StudentCard';
@@ -43,6 +44,7 @@ import { ProgressReports } from './components/ProgressReports';
 import { OfficialDocumentView } from './components/OfficialDocumentView';
 import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { CloudDatabaseModal } from './components/CloudDatabaseModal';
+import { BulkImportModal } from './components/BulkImportModal';
 import { cloudStorage, SyncStatus, PaecAppData } from './services/cloudStorage';
 import { 
   EstudiantePAEC, 
@@ -94,6 +96,7 @@ export const App: React.FC = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string>(estudiantes[0]?.id || '');
   const [showSchoolModal, setShowSchoolModal] = useState<boolean>(false);
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState<boolean>(false);
   const [viewingOfficialDoc, setViewingOfficialDoc] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -209,6 +212,21 @@ export const App: React.FC = () => {
     setEstudiantes([duplicated, ...estudiantes]);
     setSelectedStudentId(duplicated.id);
     setActiveTab('editor');
+  };
+
+  const handleBulkImportStudents = (importedStudents: EstudiantePAEC[], mode: 'append' | 'replace') => {
+    if (mode === 'replace') {
+      setEstudiantes(importedStudents);
+      if (importedStudents.length > 0) setSelectedStudentId(importedStudents[0].id);
+    } else {
+      // Merge while avoiding duplicate RUTs if present
+      const existingRuts = new Set(estudiantes.map(s => s.rut.trim()).filter(Boolean));
+      const newFiltered = importedStudents.filter(s => !s.rut || !existingRuts.has(s.rut.trim()));
+      const merged = [...estudiantes, ...newFiltered];
+      setEstudiantes(merged);
+      if (newFiltered.length > 0) setSelectedStudentId(newFiltered[0].id);
+    }
+    setActiveTab('estudiantes');
   };
 
   const handleCreateNewStudent = () => {
@@ -592,6 +610,14 @@ export const App: React.FC = () => {
               </button>
 
               <button
+                onClick={() => { setShowBulkImportModal(true); setIsSidebarOpen(false); }}
+                className="w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                <span className="mr-2.5 text-sm">📊</span>
+                <span className="flex-1 text-left">Carga Masiva (Excel / CSV)</span>
+              </button>
+
+              <button
                 onClick={handleExportData}
                 className="w-full flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
@@ -638,6 +664,7 @@ export const App: React.FC = () => {
           totalStudents={estudiantes.length}
           activeStudents={planesActivos}
           onNewStudent={handleCreateNewStudent}
+          onOpenBulkImport={() => setShowBulkImportModal(true)}
           onExportBackup={handleExportData}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -735,9 +762,18 @@ export const App: React.FC = () => {
                               placeholder="Buscar por nombre o RUT..."
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
-                              className="text-xs border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 w-52 sm:w-64 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
+                              className="text-xs border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 w-44 sm:w-56 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
                             />
                           </div>
+
+                          <button
+                            onClick={() => setShowBulkImportModal(true)}
+                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer shrink-0"
+                            title="Importar lista de estudiantes desde Excel o CSV"
+                          >
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Carga Masiva</span>
+                          </button>
                         </div>
                       </div>
 
@@ -1133,6 +1169,13 @@ export const App: React.FC = () => {
         syncDetails={syncDetails}
         appData={{ escuela, estudiantes, hitos, episodios }}
         onForceSync={handleForceCloudSync}
+      />
+
+      <BulkImportModal
+        isOpen={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        onImportStudents={handleBulkImportStudents}
+        existingCount={estudiantes.length}
       />
     </div>
   );

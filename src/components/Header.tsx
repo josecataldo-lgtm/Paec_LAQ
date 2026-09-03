@@ -18,7 +18,8 @@ import {
   Cloud,
   CloudCheck,
   CloudUpload,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet
 } from 'lucide-react';
 import { EscuelaConfig, TabType } from '../types';
 import { SyncStatus } from '../services/cloudStorage';
@@ -38,6 +39,7 @@ interface HeaderProps {
   syncStatusDetails?: string;
   onManualSync?: () => void;
   onOpenCloudSettings?: () => void;
+  onOpenBulkImport?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -54,7 +56,8 @@ export const Header: React.FC<HeaderProps> = ({
   syncStatus = 'local_only',
   syncStatusDetails,
   onManualSync,
-  onOpenCloudSettings
+  onOpenCloudSettings,
+  onOpenBulkImport
 }) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
@@ -141,6 +144,17 @@ export const Header: React.FC<HeaderProps> = ({
               {syncStatus === 'error' && 'Error Nube (Clic reintentar)'}
             </span>
           </div>
+
+          {onOpenBulkImport && (
+            <button
+              onClick={onOpenBulkImport}
+              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors hidden sm:flex cursor-pointer"
+              title="Cargar estudiantes masivamente desde Excel o CSV"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Carga Masiva</span>
+            </button>
+          )}
 
           {onExportBackup && (
             <button
