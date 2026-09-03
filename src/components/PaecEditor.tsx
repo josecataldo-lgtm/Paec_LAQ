@@ -42,13 +42,21 @@ interface PaecEditorProps {
   onSaveStudent: (student: EstudiantePAEC) => void;
   onOpenTemplateSelector: () => void;
   onViewDocument: (student: EstudiantePAEC) => void;
+  onDeleteStudent?: (studentId: string) => void;
+  estudiantes?: EstudiantePAEC[];
+  onSelectStudent?: (studentId: string) => void;
+  onNewStudent?: () => void;
 }
 
 export const PaecEditor: React.FC<PaecEditorProps> = ({
   student,
   onSaveStudent,
   onOpenTemplateSelector,
-  onViewDocument
+  onViewDocument,
+  onDeleteStudent,
+  estudiantes = [],
+  onSelectStudent,
+  onNewStudent
 }) => {
   const [data, setData] = useState<EstudiantePAEC>({ ...student });
   const [activeSection, setActiveSection] = useState<'objetivo' | 'identificacion' | 'contactos' | 'diagnostico' | 'tratamiento' | 'socioemocional' | 'fechas' | 'plan-apoyo' | 'firmas'>('identificacion');
@@ -60,7 +68,7 @@ export const PaecEditor: React.FC<PaecEditorProps> = ({
   // Sync state if student prop changes
   React.useEffect(() => {
     setData({ ...student });
-  }, [student.id]);
+  }, [student]);
 
   const handleSave = () => {
     const updated = {
@@ -239,28 +247,47 @@ export const PaecEditor: React.FC<PaecEditorProps> = ({
             PAEC
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900">
-                {data.nombre || 'Nuevo Estudiante PAEC'}
-              </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Student Selector if multiple students */}
+              {estudiantes.length > 1 && onSelectStudent ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-2xs font-bold text-slate-500 uppercase">Caso:</span>
+                  <select
+                    value={data.id}
+                    onChange={(e) => onSelectStudent(e.target.value)}
+                    className="text-sm font-bold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1 bg-slate-50 focus:ring-2 focus:ring-emerald-500 max-w-xs"
+                  >
+                    {estudiantes.map(st => (
+                      <option key={st.id} value={st.id}>
+                        {st.nombre} ({st.curso || 'Sin curso'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <h2 className="text-lg font-bold text-slate-900">
+                  {data.nombre || 'Nuevo Estudiante PAEC'}
+                </h2>
+              )}
+
               <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                 {data.curso || 'Sin curso'}
               </span>
             </div>
-            <p className="text-xs text-slate-500">
-              Resolución Exenta N° 586 • Ley TEA N° 21.545
+            <p className="text-xs text-slate-500 mt-0.5">
+              Resolución Exenta N° 586 • Ley TEA N° 21.545 • RBD Oficial
             </p>
           </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Status selector */}
           <div className="flex items-center gap-1.5 text-xs">
             <span className="text-slate-500 font-medium">Estado:</span>
             <select
               value={data.estado}
               onChange={(e) => setData({ ...data, estado: e.target.value as any })}
-              className="text-xs font-semibold py-1 px-2.5 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500"
+              className="text-xs font-semibold py-1 px-2 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-emerald-500"
             >
               <option value="Activo">Activo</option>
               <option value="Borrador">Borrador</option>
@@ -271,27 +298,42 @@ export const PaecEditor: React.FC<PaecEditorProps> = ({
 
           <button
             onClick={onOpenTemplateSelector}
-            className="px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Importar estructura desde plantilla preconfigurada"
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Cargar Plantilla</span>
+            <span className="hidden sm:inline">Plantilla</span>
           </button>
 
           <button
             onClick={() => onViewDocument(data)}
-            className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Ver e imprimir PDF Oficial"
           >
             <Printer className="w-3.5 h-3.5 text-slate-500" />
-            <span>Ver Documento Oficial</span>
+            <span className="hidden sm:inline">PDF Oficial</span>
           </button>
+
+          {onDeleteStudent && (
+            <button
+              onClick={() => {
+                if (window.confirm(`¿Estás seguro de que deseas eliminar definitivamente el expediente PAEC de "${data.nombre}"?`)) {
+                  onDeleteStudent(data.id);
+                }
+              }}
+              className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors cursor-pointer"
+              title="Eliminar este expediente PAEC"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
 
           <button
             onClick={handleSave}
-            className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
             <Save className="w-4 h-4" />
-            <span>Guardar Cambios</span>
+            <span>Guardar</span>
           </button>
         </div>
       </div>
