@@ -692,359 +692,363 @@ export const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 12-Column High-Density Grid (8 Cols Table/Directory + 4 Cols Side Insight Panels) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* LEFT COLUMN: ESTUDIANTES TABLE / LIST (8 COLS) */}
-                    <section className="lg:col-span-8 flex flex-col space-y-4">
-                      <div className="bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
-                        {/* High-density Filter Bar */}
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-slate-900">Listado de Estudiantes y Estados PAEC</h3>
-                            <span className="px-2 py-0.5 rounded-full text-2xs bg-slate-200 text-slate-700 font-bold font-mono">
-                              {filteredEstudiantes.length}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {/* Toggle Table/Cards */}
-                            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
-                              <button
-                                onClick={() => setViewMode('table')}
-                                className={`p-1.5 rounded-md text-xs transition-colors ${
-                                  viewMode === 'table' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-900'
-                                }`}
-                                title="Vista Tabla Alta Densidad"
-                              >
-                                <Table className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setViewMode('cards')}
-                                className={`p-1.5 rounded-md text-xs transition-colors ${
-                                  viewMode === 'cards' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-900'
-                                }`}
-                                title="Vista Tarjetas"
-                              >
-                                <LayoutGrid className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Search Input */}
-                            <div className="relative">
-                              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
-                              <input
-                                type="text"
-                                placeholder="Buscar estudiante..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="text-xs border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 w-44 sm:w-52 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
-                              />
-                            </div>
-                          </div>
+                  {/* Main Full-Width Section: Table / Cards */}
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+                      {/* High-density Filter Bar */}
+                      <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-sm text-slate-900">Listado de Estudiantes y Estados PAEC</h3>
+                          <span className="px-2.5 py-0.5 rounded-full text-2xs bg-slate-200 text-slate-700 font-bold font-mono">
+                            {filteredEstudiantes.length} expedientes
+                          </span>
                         </div>
 
-                        {/* Quick filter badges bar */}
-                        <div className="px-4 py-2 bg-white border-b border-slate-100 flex items-center flex-wrap gap-2 text-xs">
-                          <div className="flex items-center gap-1 text-slate-500 text-[11px] font-semibold">
-                            <Filter className="w-3 h-3" />
-                            <span>Filtros:</span>
-                          </div>
-
-                          <select
-                            value={courseFilter}
-                            onChange={(e) => setCourseFilter(e.target.value)}
-                            className="text-2xs py-1 px-2 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
-                          >
-                            <option value="todos">Todos los Cursos</option>
-                            {CURSOS_CHILE.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-
-                          <select
-                            value={teaLevelFilter}
-                            onChange={(e) => setTeaLevelFilter(e.target.value)}
-                            className="text-2xs py-1 px-2 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
-                          >
-                            <option value="todos">Todos los Niveles TEA</option>
-                            <option value="Nivel 1">Nivel 1 (Apoyo)</option>
-                            <option value="Nivel 2">Nivel 2 (Sustancial)</option>
-                            <option value="Nivel 3">Nivel 3 (Muy Sustancial)</option>
-                          </select>
-
-                          <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="text-2xs py-1 px-2 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
-                          >
-                            <option value="todos">Todos los Estados</option>
-                            <option value="Activo">Activo</option>
-                            <option value="Borrador">Borrador</option>
-                            <option value="En Revisión">En Revisión</option>
-                          </select>
-
-                          {(courseFilter !== 'todos' || teaLevelFilter !== 'todos' || statusFilter !== 'todos' || searchQuery) && (
+                        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                          {/* Toggle Table/Cards */}
+                          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
                             <button
-                              onClick={() => {
-                                setCourseFilter('todos');
-                                setTeaLevelFilter('todos');
-                                setStatusFilter('todos');
-                                setSearchQuery('');
-                              }}
-                              className="text-2xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-0.5 rounded hover:bg-rose-50"
+                              onClick={() => setViewMode('table')}
+                              className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                                viewMode === 'table' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-900'
+                              }`}
+                              title="Vista Tabla Completa"
                             >
-                              Limpiar
+                              <Table className="w-3.5 h-3.5" />
                             </button>
-                          )}
+                            <button
+                              onClick={() => setViewMode('cards')}
+                              className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                                viewMode === 'cards' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-900'
+                              }`}
+                              title="Vista Tarjetas"
+                            >
+                              <LayoutGrid className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Search Input */}
+                          <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                            <input
+                              type="text"
+                              placeholder="Buscar por nombre o RUT..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="text-xs border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 w-52 sm:w-64 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick filter badges bar */}
+                      <div className="px-4 py-2.5 bg-white border-b border-slate-100 flex items-center flex-wrap gap-2 text-xs">
+                        <div className="flex items-center gap-1 text-slate-500 text-[11px] font-semibold">
+                          <Filter className="w-3.5 h-3.5" />
+                          <span>Filtros:</span>
                         </div>
 
-                        {/* High-density Table View */}
-                        {viewMode === 'table' ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 uppercase font-semibold">
-                                <tr>
-                                  <th className="px-5 py-3">Estudiante</th>
-                                  <th className="px-4 py-3">Nivel Apoyo</th>
-                                  <th className="px-4 py-3">Curso & Diagnóstico</th>
-                                  <th className="px-4 py-3">Progreso Hitos</th>
-                                  <th className="px-5 py-3 text-right">Acciones</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-xs divide-y divide-slate-100">
-                                {filteredEstudiantes.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                                      No se encontraron estudiantes con los filtros seleccionados.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  filteredEstudiantes.map(st => {
-                                    const stHitos = hitos.filter(h => h.estudianteId === st.id);
-                                    const stLogrados = stHitos.filter(h => h.estado === 'logrado' || h.estado === 'consolidado').length;
-                                    const stPct = stHitos.length > 0 ? Math.round((stLogrados / stHitos.length) * 100) : 0;
-                                    
-                                    const nivelBadge = st.diagnosticoPie?.nivelTea?.includes('Nivel 1')
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : st.diagnosticoPie?.nivelTea?.includes('Nivel 2')
-                                      ? 'bg-purple-100 text-purple-700'
-                                      : 'bg-amber-100 text-amber-800';
+                        <select
+                          value={courseFilter}
+                          onChange={(e) => setCourseFilter(e.target.value)}
+                          className="text-2xs py-1 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
+                        >
+                          <option value="todos">Todos los Cursos</option>
+                          {CURSOS_CHILE.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
 
-                                    const nivelLabel = st.diagnosticoPie?.nivelTea?.includes('Nivel 1')
-                                      ? 'Nivel 1'
-                                      : st.diagnosticoPie?.nivelTea?.includes('Nivel 2')
-                                      ? 'Nivel 2'
-                                      : 'Nivel 3';
+                        <select
+                          value={teaLevelFilter}
+                          onChange={(e) => setTeaLevelFilter(e.target.value)}
+                          className="text-2xs py-1 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
+                        >
+                          <option value="todos">Todos los Niveles TEA</option>
+                          <option value="Nivel 1">Nivel 1 (Requiere Apoyo)</option>
+                          <option value="Nivel 2">Nivel 2 (Apoyo Sustancial)</option>
+                          <option value="Nivel 3">Nivel 3 (Apoyo Muy Sustancial)</option>
+                        </select>
 
-                                    return (
-                                      <tr key={st.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-5 py-3">
-                                          <div className="font-semibold text-slate-900">{st.nombre}</div>
-                                          <div className="text-[10px] text-slate-400 font-mono">
-                                            RUT: {st.rut || 'Pendiente'}
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${nivelBadge}`}>
-                                            {nivelLabel}
-                                          </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          <div className="font-medium text-slate-700">{st.curso}</div>
-                                          <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
-                                            {st.diagnosticoPie?.comorbilidades?.join(', ') || 'TEA Puro'}
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-20 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                              <div 
-                                                className={`h-full ${stPct >= 75 ? 'bg-emerald-500' : stPct >= 40 ? 'bg-blue-500' : 'bg-amber-400'}`}
-                                                style={{ width: `${stPct}%` }}
-                                              ></div>
-                                            </div>
-                                            <span className="text-[10px] font-mono text-slate-500 font-semibold">{stPct}%</span>
-                                          </div>
-                                        </td>
-                                        <td className="px-5 py-3 text-right">
-                                          <div className="flex items-center justify-end gap-1.5">
-                                            <button
-                                              onClick={() => handleViewOfficialDocument(st)}
-                                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                                              title="Ver PDF Oficial (Res. 586)"
-                                            >
-                                              <Printer className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              onClick={() => handleDuplicateStudent(st)}
-                                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                                              title="Duplicar expediente PAEC"
-                                            >
-                                              <Copy className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              onClick={() => handleDeleteStudent(st.id)}
-                                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                              title="Eliminar este expediente PAEC"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                              onClick={() => handleSelectStudentForEdit(st)}
-                                              className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
-                                              title="Editar expediente completo"
-                                            >
-                                              <Edit3 className="w-3 h-3" />
-                                              <span>Editar PAEC</span>
-                                            </button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          /* High-density Cards View */
-                          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {filteredEstudiantes.map(student => (
-                              <StudentCard
-                                key={student.id}
-                                student={student}
-                                hitos={hitos}
-                                episodios={episodios}
-                                onEditPaec={handleSelectStudentForEdit}
-                                onViewDocument={handleViewOfficialDocument}
-                                onViewHitos={(st) => {
-                                  setSelectedStudentId(st.id);
-                                  setActiveTab('hitos');
-                                }}
-                                onAddIncident={(st) => {
-                                  setSelectedStudentId(st.id);
-                                  setActiveTab('bitacora');
-                                }}
-                                onGenerateReport={(st) => {
-                                  setSelectedStudentId(st.id);
-                                  setActiveTab('reportes');
-                                }}
-                                onDeleteStudent={handleDeleteStudent}
-                                onDuplicateStudent={handleDuplicateStudent}
-                              />
-                            ))}
-                          </div>
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="text-2xs py-1 px-2.5 rounded-md border border-slate-200 bg-slate-50 text-slate-700 font-medium"
+                        >
+                          <option value="todos">Todos los Estados</option>
+                          <option value="Activo">Activo</option>
+                          <option value="Borrador">Borrador</option>
+                          <option value="En Revisión">En Revisión</option>
+                          <option value="Cerrado">Cerrado</option>
+                        </select>
+
+                        {(courseFilter !== 'todos' || teaLevelFilter !== 'todos' || statusFilter !== 'todos' || searchQuery) && (
+                          <button
+                            onClick={() => {
+                              setCourseFilter('todos');
+                              setTeaLevelFilter('todos');
+                              setStatusFilter('todos');
+                              setSearchQuery('');
+                            }}
+                            className="text-2xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-0.5 rounded hover:bg-rose-50 cursor-pointer"
+                          >
+                            Limpiar Filtros
+                          </button>
                         )}
                       </div>
-                    </section>
 
-                    {/* RIGHT COLUMN: HIGH-DENSITY SIDE INSIGHT PANELS (4 COLS) */}
-                    <section className="lg:col-span-4 flex flex-col space-y-6">
-                      {/* Dark Insight Card */}
-                      <div className="bg-[#1E293B] text-white p-5 rounded-xl shadow-md border border-slate-700/80">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Detalle Hito Actual</h3>
-                        <div className="mt-3 flex justify-between items-end">
-                          <div>
-                            <p className="text-xl font-light text-slate-100">
-                              Adecuación <span className="font-bold text-white">Evaluativa</span>
-                            </p>
-                            <p className="text-xs text-emerald-400 mt-0.5 font-medium flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                              Fase de Implementación Activa
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Ley 21.545</p>
-                            <p className="text-base font-mono font-bold text-slate-200">Art. 18</p>
-                          </div>
+                      {/* Full-width Responsive Table View */}
+                      {viewMode === 'table' ? (
+                        <div className="overflow-x-auto w-full">
+                          <table className="w-full text-left border-collapse min-w-[720px]">
+                            <thead className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 uppercase font-semibold">
+                              <tr>
+                                <th className="px-5 py-3 whitespace-nowrap">Estudiante</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Nivel de Apoyo TEA</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Curso & Diagnóstico PIE</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Progreso Hitos</th>
+                                <th className="px-5 py-3 text-right whitespace-nowrap">Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-xs divide-y divide-slate-100">
+                              {filteredEstudiantes.length === 0 ? (
+                                <tr>
+                                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    No se encontraron expedientes con los filtros seleccionados.
+                                  </td>
+                                </tr>
+                              ) : (
+                                filteredEstudiantes.map(st => {
+                                  const stHitos = hitos.filter(h => h.estudianteId === st.id);
+                                  const stLogrados = stHitos.filter(h => h.estado === 'logrado' || h.estado === 'consolidado').length;
+                                  const stPct = stHitos.length > 0 ? Math.round((stLogrados / stHitos.length) * 100) : 0;
+                                  
+                                  const nivelBadge = st.diagnosticoPie?.nivelTea?.includes('Nivel 1')
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : st.diagnosticoPie?.nivelTea?.includes('Nivel 2')
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : 'bg-amber-100 text-amber-800';
+
+                                  const nivelLabel = st.diagnosticoPie?.nivelTea?.includes('Nivel 1')
+                                    ? 'TEA Nivel 1'
+                                    : st.diagnosticoPie?.nivelTea?.includes('Nivel 2')
+                                    ? 'TEA Nivel 2'
+                                    : 'TEA Nivel 3';
+
+                                  return (
+                                    <tr key={st.id} className="hover:bg-slate-50/80 transition-colors">
+                                      <td className="px-5 py-3.5 whitespace-nowrap">
+                                        <div className="font-bold text-slate-900 text-sm">{st.nombre}</div>
+                                        <div className="text-[11px] text-slate-400 font-mono">
+                                          RUT: {st.rut || 'Pendiente'} {st.edad ? `• ${st.edad}` : ''}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3.5 whitespace-nowrap">
+                                        <span className={`inline-flex items-center gap-1 whitespace-nowrap text-2xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${nivelBadge}`}>
+                                          {nivelLabel}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3.5 whitespace-nowrap">
+                                        <div className="font-semibold text-slate-800">{st.curso}</div>
+                                        <div className="text-[11px] text-slate-500 truncate max-w-xs">
+                                          {st.diagnosticoPie?.comorbilidades?.join(', ') || 'TEA Puro (Sin comorbilidades)'}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3.5 whitespace-nowrap">
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="w-24 bg-slate-100 h-2 rounded-full overflow-hidden">
+                                            <div 
+                                              className={`h-full transition-all ${stPct >= 75 ? 'bg-emerald-500' : stPct >= 40 ? 'bg-blue-500' : 'bg-amber-400'}`}
+                                              style={{ width: `${stPct}%` }}
+                                            ></div>
+                                          </div>
+                                          <span className="text-[11px] font-mono text-slate-600 font-bold">{stPct}%</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          <button
+                                            onClick={() => handleViewOfficialDocument(st)}
+                                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                            title="Ver PDF Oficial (Res. 586)"
+                                          >
+                                            <Printer className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDuplicateStudent(st)}
+                                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                            title="Duplicar expediente PAEC"
+                                          >
+                                            <Copy className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteStudent(st.id)}
+                                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                            title="Eliminar este expediente PAEC"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleSelectStudentForEdit(st)}
+                                            className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer whitespace-nowrap ml-1"
+                                            title="Editar expediente completo"
+                                          >
+                                            <Edit3 className="w-3.5 h-3.5" />
+                                            <span>Editar PAEC</span>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
                         </div>
+                      ) : (
+                        /* High-density Cards View */
+                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {filteredEstudiantes.map(student => (
+                            <StudentCard
+                              key={student.id}
+                              student={student}
+                              hitos={hitos}
+                              episodios={episodios}
+                              onEditPaec={handleSelectStudentForEdit}
+                              onViewDocument={handleViewOfficialDocument}
+                              onViewHitos={(st) => {
+                                setSelectedStudentId(st.id);
+                                setActiveTab('hitos');
+                              }}
+                              onAddIncident={(st) => {
+                                setSelectedStudentId(st.id);
+                                setActiveTab('bitacora');
+                              }}
+                              onGenerateReport={(st) => {
+                                setSelectedStudentId(st.id);
+                                setActiveTab('reportes');
+                              }}
+                              onDeleteStudent={handleDeleteStudent}
+                              onDuplicateStudent={handleDuplicateStudent}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                        <div className="mt-4 border-t border-slate-700/80 pt-3 space-y-2.5">
-                          <div className="flex items-center text-xs">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 mr-2.5"></div>
-                            <span className="flex-1 text-slate-300">Detección y caracterización sensorial</span>
-                            <span className="text-emerald-400 font-bold text-2xs uppercase">Ok</span>
+                    {/* BOTTOM 2-COLUMN SECTION: INSIGHT AND ACHIEVEMENT PANELS */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Dark Insight Card */}
+                      <div className="bg-[#1E293B] text-white p-6 rounded-xl shadow-md border border-slate-700/80 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Detalle Hito Actual</h3>
+                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Ley 21.545 Art. 18</span>
                           </div>
-                          <div className="flex items-center text-xs">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 mr-2.5"></div>
-                            <span className="flex-1 text-slate-300">Propuesta pedagógica inicial Res. 586</span>
-                            <span className="text-emerald-400 font-bold text-2xs uppercase">Ok</span>
+
+                          <div className="mt-4 flex justify-between items-end">
+                            <div>
+                              <p className="text-2xl font-light text-slate-100">
+                                Adecuación <span className="font-bold text-white">Evaluativa</span>
+                              </p>
+                              <p className="text-xs text-emerald-400 mt-1 font-medium flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Fase de Implementación Activa
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center text-xs">
-                            <div className="w-2 h-2 rounded-full bg-blue-400 mr-2.5"></div>
-                            <span className="flex-1 text-slate-300">Validación y firma con la familia</span>
-                            <span className="text-blue-300 font-bold text-2xs uppercase">En Proceso</span>
+
+                          <div className="mt-5 border-t border-slate-700/80 pt-4 space-y-3">
+                            <div className="flex items-center text-xs">
+                              <div className="w-2 h-2 rounded-full bg-emerald-400 mr-3"></div>
+                              <span className="flex-1 text-slate-300">Detección y caracterización sensorial</span>
+                              <span className="text-emerald-400 font-bold text-2xs uppercase">Ok</span>
+                            </div>
+                            <div className="flex items-center text-xs">
+                              <div className="w-2 h-2 rounded-full bg-emerald-400 mr-3"></div>
+                              <span className="flex-1 text-slate-300">Propuesta pedagógica inicial Res. 586</span>
+                              <span className="text-emerald-400 font-bold text-2xs uppercase">Ok</span>
+                            </div>
+                            <div className="flex items-center text-xs">
+                              <div className="w-2 h-2 rounded-full bg-blue-400 mr-3"></div>
+                              <span className="flex-1 text-slate-300">Validación y firma con la familia</span>
+                              <span className="text-blue-300 font-bold text-2xs uppercase">En Proceso</span>
+                            </div>
                           </div>
                         </div>
 
                         <button
                           onClick={() => setActiveTab('hitos')}
-                          className="w-full mt-4 py-2 bg-slate-800 hover:bg-slate-700/80 text-slate-200 text-xs font-semibold rounded-lg transition-colors border border-slate-700 flex items-center justify-center gap-1"
+                          className="w-full mt-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <span>Ver Matriz Completa de Hitos</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* Light Radial Achievement Card */}
-                      <div className="bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col p-5">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500">Reporte de Avance Institucional</h3>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            PIE {escuela.anoEscolar}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-col items-center justify-center my-2">
-                          <div className="w-28 h-28 rounded-full border-6 border-slate-100 border-t-emerald-500 border-r-emerald-500 flex items-center justify-center relative shadow-inner">
-                            <div className="text-center">
-                              <span className="text-2xl font-black text-slate-900 font-mono">{porcentajeCumplimiento}%</span>
-                              <p className="text-[9px] text-slate-400 uppercase font-bold">Consolidado</p>
-                            </div>
-                            <span className="absolute -bottom-2 bg-emerald-600 text-white text-[9px] px-2 py-0.5 rounded-full uppercase font-bold shadow-xs">
-                              Logro Promedio
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between p-6">
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-500">Reporte de Avance Institucional</h3>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              PIE {escuela.anoEscolar}
                             </span>
                           </div>
-                        </div>
 
-                        <div className="w-full space-y-3 mt-4">
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
-                              <span>Socio-Emocional</span>
-                              <span className="font-mono text-emerald-700 font-bold">92%</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div className="flex flex-col items-center justify-center py-2">
+                              <div className="w-28 h-28 rounded-full border-6 border-slate-100 border-t-emerald-500 border-r-emerald-500 flex items-center justify-center relative shadow-inner">
+                                <div className="text-center">
+                                  <span className="text-2xl font-black text-slate-900 font-mono">{porcentajeCumplimiento}%</span>
+                                  <p className="text-[9px] text-slate-400 uppercase font-bold">Consolidado</p>
+                                </div>
+                                <span className="absolute -bottom-2 bg-emerald-600 text-white text-[9px] px-2 py-0.5 rounded-full uppercase font-bold shadow-xs">
+                                  Logro Promedio
+                                </span>
+                              </div>
                             </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
-                              <div className="bg-emerald-500 w-[92%] h-full"></div>
-                            </div>
-                          </div>
 
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
-                              <span>Integración Sensorial</span>
-                              <span className="font-mono text-amber-700 font-bold">58%</span>
-                            </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
-                              <div className="bg-amber-500 w-[58%] h-full"></div>
-                            </div>
-                          </div>
+                            <div className="space-y-3">
+                              <div>
+                                <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
+                                  <span>Socio-Emocional</span>
+                                  <span className="font-mono text-emerald-700 font-bold">92%</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
+                                  <div className="bg-emerald-500 w-[92%] h-full"></div>
+                                </div>
+                              </div>
 
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
-                              <span>Currículum Adaptado (DUA)</span>
-                              <span className="font-mono text-blue-700 font-bold">64%</span>
-                            </div>
-                            <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
-                              <div className="bg-blue-500 w-[64%] h-full"></div>
+                              <div>
+                                <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
+                                  <span>Integración Sensorial</span>
+                                  <span className="font-mono text-amber-700 font-bold">58%</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
+                                  <div className="bg-amber-500 w-[58%] h-full"></div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
+                                  <span>Currículum Adaptado (DUA)</span>
+                                  <span className="font-mono text-blue-700 font-bold">64%</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full w-full overflow-hidden">
+                                  <div className="bg-blue-500 w-[64%] h-full"></div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         <button
                           onClick={() => setActiveTab('reportes')}
-                          className="w-full mt-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors"
+                          className="w-full mt-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
                         >
                           Generar Reporte PDF con IA
                         </button>
                       </div>
-                    </section>
+                    </div>
                   </div>
                 </div>
               )}
