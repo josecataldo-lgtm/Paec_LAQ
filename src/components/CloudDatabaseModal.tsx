@@ -81,15 +81,18 @@ export const CloudDatabaseModal: React.FC<CloudDatabaseModalProps> = ({
     }
   };
 
-  const sqlQuickCopy = `-- Copiar y ejecutar en Supabase > SQL Editor:
+  const sqlQuickCopy = `-- Copiar y ejecutar en Supabase > SQL Editor para activar Sincronización en Tiempo Real:
 CREATE TABLE IF NOT EXISTS sincronizacion_global (
   id TEXT PRIMARY KEY DEFAULT 'main',
   data JSONB NOT NULL,
   version TEXT DEFAULT '1.0',
+  client_id TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE sincronizacion_global ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Acceso Publico" ON sincronizacion_global FOR ALL USING (true) WITH CHECK (true);`;
+CREATE POLICY "Acceso Publico" ON sincronizacion_global FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE sincronizacion_global REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE sincronizacion_global;`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlQuickCopy);

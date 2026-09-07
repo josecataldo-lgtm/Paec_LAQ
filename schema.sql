@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS sincronizacion_global (
   id TEXT PRIMARY KEY DEFAULT 'main',
   data JSONB NOT NULL,
   version TEXT DEFAULT '1.0',
+  client_id TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -120,3 +121,7 @@ CREATE POLICY "Acceso Publico Estudiantes" ON estudiantes FOR ALL USING (true) W
 CREATE POLICY "Acceso Publico Hitos" ON hitos_pedagogicos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso Publico Episodios" ON episodios_desregulacion FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso Publico Sincronizacion" ON sincronizacion_global FOR ALL USING (true) WITH CHECK (true);
+
+-- Habilitar publicación Realtime en Supabase para sincronización multiusuario sin refrescar
+ALTER TABLE sincronizacion_global REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE sincronizacion_global;

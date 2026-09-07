@@ -107,6 +107,9 @@ export const App: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [teaLevelFilter, setTeaLevelFilter] = useState<string>('todos');
 
+  const isRemoteUpdateRef = React.useRef<boolean>(false);
+  const [remoteSyncToast, setRemoteSyncToast] = useState<string | null>(null);
+
   // Listen to cloud status
   useEffect(() => {
     const unsubscribe = cloudStorage.onStatusChange((status, details) => {
@@ -116,17 +119,42 @@ export const App: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  // Listen to Realtime updates from other users in Supabase
+  useEffect(() => {
+    const unsubscribeData = cloudStorage.onDataChange((newData, isFromOtherUser) => {
+      if (isFromOtherUser && newData) {
+        isRemoteUpdateRef.current = true;
+        if (newData.estudiantes) setEstudiantes(newData.estudiantes);
+        if (newData.hitos) setHitos(newData.hitos);
+        if (newData.episodios) setEpisodios(newData.episodios);
+        if (newData.escuela) setEscuela(newData.escuela);
+
+        setRemoteSyncToast('¡Sincronizado en tiempo real! Se recibieron cambios de otro usuario ✨');
+        setTimeout(() => setRemoteSyncToast(null), 4000);
+
+        setTimeout(() => {
+          isRemoteUpdateRef.current = false;
+        }, 1000);
+      }
+    });
+    return unsubscribeData;
+  }, []);
+
   // Load initial data from cloud database
   useEffect(() => {
     async function loadData() {
       try {
         const data = await cloudStorage.loadInitialData();
         if (data) {
+          isRemoteUpdateRef.current = true;
           if (data.estudiantes?.length) setEstudiantes(data.estudiantes);
           if (data.hitos?.length) setHitos(data.hitos);
           if (data.episodios?.length) setEpisodios(data.episodios);
           if (data.escuela) setEscuela(data.escuela);
           if (data.estudiantes?.[0]?.id) setSelectedStudentId(data.estudiantes[0].id);
+          setTimeout(() => {
+            isRemoteUpdateRef.current = false;
+          }, 1000);
         }
       } catch (err) {
         console.error('Error loading cloud data:', err);
@@ -137,9 +165,10 @@ export const App: React.FC = () => {
     loadData();
   }, []);
 
-  // Auto-save changes to cloud & local storage
+  // Auto-save changes to cloud & local storage (only when local user modifies state)
   useEffect(() => {
     if (isInitialLoading) return;
+    if (isRemoteUpdateRef.current) return;
     cloudStorage.saveAll({
       escuela,
       estudiantes,
@@ -673,6 +702,16 @@ export const App: React.FC = () => {
           onManualSync={() => setShowCloudModal(true)}
           onOpenCloudSettings={() => setShowCloudModal(true)}
         />
+
+        {/* Floating Realtime Sync Alert */}
+        {remoteSyncToast && (
+          <div className="bg-emerald-600 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-md sticky top-14 z-30 animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              <span>{remoteSyncToast}</span>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-7 overflow-x-hidden">
