@@ -25,13 +25,14 @@ type DataListener = (data: PaecAppData, isFromOtherUser: boolean) => void;
 const CLIENT_ID = Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
 
 /**
- * Fusión Inteligente (Deep Smart Merge) de Datos Multi-usuario
- * Garantiza que NINGÚN estudiante, hito o episodio creado por otro usuario sea borrado por sobreescritura.
+ * Fusión Inteligente de Datos Multi-usuario
+ * Da prioridad a los datos guardados por colegas en la nube sin perder creaciones locales no subidas.
  */
 export function smartMergeData(
   cloudData: PaecAppData | null | undefined, 
   localData: PaecAppData | null | undefined,
-  deletedIds: Set<string> = new Set()
+  deletedIds: Set<string> = new Set(),
+  preferCloud: boolean = true
 ): PaecAppData {
   if (!cloudData && !localData) {
     return {
@@ -48,28 +49,24 @@ export function smartMergeData(
   // 1. Fusionar Estudiantes
   const studentMap = new Map<string, EstudiantePAEC>();
 
-  // Agregar estudiantes de la nube (si no fueron eliminados explícitamente)
+  // Cargar primero TODOS los estudiantes de la nube (datos de colegas)
   (cloudData.estudiantes || []).forEach(st => {
     if (!deletedIds.has(st.id)) {
       studentMap.set(st.id, st);
     }
   });
 
-  // Fusionar con estudiantes locales
+  // Agregar estudiantes locales que sean NUEVOS (creados localmente y aún no subidos)
   (localData.estudiantes || []).forEach(localSt => {
     if (!deletedIds.has(localSt.id)) {
-      const cloudSt = studentMap.get(localSt.id);
-      if (!cloudSt) {
+      if (!studentMap.has(localSt.id)) {
         studentMap.set(localSt.id, localSt);
-      } else {
-        // Si existen ambos, conservar la versión con la fecha de actualización más reciente
+      } else if (!preferCloud) {
+        const cloudSt = studentMap.get(localSt.id)!;
         const cloudTime = new Date(cloudSt.actualizadoEl || 0).getTime();
         const localTime = new Date(localSt.actualizadoEl || 0).getTime();
-
-        if (localTime >= cloudTime) {
+        if (localTime > cloudTime) {
           studentMap.set(localSt.id, localSt);
-        } else {
-          studentMap.set(cloudSt.id, cloudSt);
         }
       }
     }
@@ -81,17 +78,8 @@ export function smartMergeData(
     if (!deletedIds.has(h.id)) hitosMap.set(h.id, h);
   });
   (localData.hitos || []).forEach(localH => {
-    if (!deletedIds.has(localH.id)) {
-      const cloudH = hitosMap.get(localH.id);
-      if (!cloudH) {
-        hitosMap.set(localH.id, localH);
-      } else {
-        const cloudTime = new Date(cloudH.fechaEvaluacion || 0).getTime();
-        const localTime = new Date(localH.fechaEvaluacion || 0).getTime();
-        if (localTime >= cloudTime) {
-          hitosMap.set(localH.id, localH);
-        }
-      }
+    if (!deletedIds.has(localH.id) && !hitosMap.has(localH.id)) {
+      hitosMap.set(localH.id, localH);
     }
   });
 
@@ -101,15 +89,15 @@ export function smartMergeData(
     if (!deletedIds.has(ep.id)) episodiosMap.set(ep.id, ep);
   });
   (localData.episodios || []).forEach(localEp => {
-    if (!deletedIds.has(localEp.id)) {
+    if (!deletedIds.has(localEp.id) && !episodiosMap.has(localEp.id)) {
       episodiosMap.set(localEp.id, localEp);
     }
   });
 
-  // 4. Fusionar Datos de la Escuela
+  // 4. Fusionar Configuración de la Escuela
   const escuelaMerged: EscuelaConfig = {
-    ...cloudData.escuela,
-    ...localData.escuela
+    ...(localData.escuela || ESCUELA_DEFAULT),
+    ...(cloudData.escuela || {})
   };
 
   return {
@@ -184,17 +172,17 @@ class CloudStorageService {
   }
 
   /**
-   * Conectar con nuevas credenciales ingresadas por el usuario
+   * Conectar con nuevas credenciales e importar inmediatamente los datos de la nube
    */
   public async configureAndSync(url: string, key: string, currentData: PaecAppData): Promise<{ success: boolean; message: string }> {
     const ok = updateSupabaseConfig(url, key);
     if (!ok) {
       this.stopRealtimeSubscription();
       this.setStatus('local_only', 'Configuración de Supabase borrada o inválida');
-      return { success: false, message: 'La URL o la clave ingresada no es válida. La URL debe empezar con https://' };
+      return { success: false, message: 'La URL o la clave ingresada no es válida.' };
     }
 
-    this.setStatus('syncing', 'Probando conexión con Supabase...');
+    this.setStatus('syncing', 'Conectando con Supabase...');
     try {
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
@@ -215,32 +203,62 @@ class CloudStorageService {
 
       if (data?.data) {
         this.lastCloudUpdatedAt = data.updated_at;
-        const merged = smartMergeData(data.data as PaecAppData, currentData, this.deletedIds);
+        const merged = smartMergeData(data.data as PaecAppData, currentData, this.deletedIds, true);
         this.setLocalCache(merged);
-        await this.saveToCloud(merged);
-        this.setStatus('synced', 'Conectado exitosamente y datos fusionados con la nube');
+        this.setStatus('synced', '¡Conectado! Datos de tus colegas recuperados de la nube');
+        this.notifyDataListeners(merged, true);
         this.startRealtimeSubscription();
-        return { success: true, message: '¡Conectado exitosamente! Datos sincronizados sin pérdida.' };
+        return { success: true, message: '¡Conectado exitosamente! Datos de colegas descargados de la nube.' };
       } else {
         await this.saveToCloud(currentData);
-        this.setStatus('synced', 'Conectado exitosamente y datos locales subidos a la nube');
+        this.setStatus('synced', 'Conectado y datos subidos a la nube');
         this.startRealtimeSubscription();
-        return { success: true, message: '¡Conectado exitosamente! Tus datos locales han sido respaldados en la nube.' };
+        return { success: true, message: '¡Conectado! Tus datos locales han sido guardados en la nube.' };
       }
     } catch (err: any) {
       this.setStatus('error', err.message || 'Error de conexión');
-      return { success: false, message: `Error al conectar con la base de datos: ${err.message}` };
+      return { success: false, message: `Error de conexión: ${err.message}` };
     }
   }
 
   /**
-   * Carga los datos iniciales y realiza Fusión Inteligente con los datos locales
+   * Forzar descarga directa de los datos más recientes de los colegas desde la nube
+   */
+  public async pullLatestFromCloud(): Promise<PaecAppData | null> {
+    if (!checkIsConfigured() || !supabase) return null;
+    this.setStatus('syncing', 'Descargando datos recientes de colegas...');
+    try {
+      const { data, error } = await supabase
+        .from('sincronizacion_global')
+        .select('data, updated_at')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (!error && data?.data) {
+        const cloudData = data.data as PaecAppData;
+        this.lastCloudUpdatedAt = data.updated_at;
+        const local = this.getLocalCache();
+        const merged = smartMergeData(cloudData, local, this.deletedIds, true);
+        this.setLocalCache(merged);
+        this.setStatus('synced', 'Datos actualizados desde la nube');
+        this.notifyDataListeners(merged, true);
+        return merged;
+      }
+    } catch (e) {
+      console.error('Error al descargar de la nube:', e);
+      this.setStatus('error', 'Error al descargar datos de la nube');
+    }
+    return null;
+  }
+
+  /**
+   * Carga los datos iniciales priorizando la información de la nube (colegas)
    */
   public async loadInitialData(): Promise<PaecAppData> {
     const localData = this.getLocalCache();
 
     if (checkIsConfigured() && supabase) {
-      this.setStatus('syncing', 'Conectando con la base de datos en la nube...');
+      this.setStatus('syncing', 'Descargando expedientes desde la nube...');
       try {
         const { data, error } = await supabase
           .from('sincronizacion_global')
@@ -249,19 +267,18 @@ class CloudStorageService {
           .maybeSingle();
 
         if (error) {
-          console.warn('Error al leer sincronizacion_global de Supabase:', error.message);
+          console.warn('Error al leer de Supabase:', error.message);
           this.setStatus('error', error.message);
         } else if (data?.data) {
           this.lastCloudUpdatedAt = data.updated_at;
           const cloudData = data.data as PaecAppData;
-          const mergedData = smartMergeData(cloudData, localData, this.deletedIds);
+          const mergedData = smartMergeData(cloudData, localData, this.deletedIds, true);
           this.setLocalCache(mergedData);
-          this.pushSnapshot(mergedData, 'Inicio de sesión / Carga inicial');
-          this.setStatus('synced', 'Datos sincronizados desde la nube');
+          this.pushSnapshot(mergedData, 'Carga inicial desde la nube');
+          this.setStatus('synced', 'Conectado a la nube');
           this.startRealtimeSubscription();
           return mergedData;
         } else {
-          console.log('Primera sincronización: subiendo datos a Supabase...');
           await this.saveToCloud(localData);
           this.setStatus('synced', 'Nube inicializada');
           this.startRealtimeSubscription();
@@ -277,7 +294,7 @@ class CloudStorageService {
   }
 
   /**
-   * Inicia la suscripción a cambios en tiempo real
+   * Inicia la suscripción en tiempo real (WebSockets + Polling)
    */
   public startRealtimeSubscription() {
     if (!checkIsConfigured() || !supabase) return;
@@ -301,9 +318,9 @@ class CloudStorageService {
                 if (isFromOther && !this.isSavingNow) {
                   this.lastCloudUpdatedAt = record.updated_at;
                   const local = this.getLocalCache();
-                  const merged = smartMergeData(record.data as PaecAppData, local, this.deletedIds);
+                  const merged = smartMergeData(record.data as PaecAppData, local, this.deletedIds, true);
                   this.setLocalCache(merged);
-                  this.pushSnapshot(merged, 'Actualización en tiempo real');
+                  this.pushSnapshot(merged, 'Actualización de colegas');
                   this.setStatus('synced', 'Sincronizado en tiempo real');
                   this.notifyDataListeners(merged, true);
                 }
@@ -312,7 +329,7 @@ class CloudStorageService {
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              console.log('🟢 Supabase Realtime activo con protección Anti-Sobreescritura');
+              console.log('🟢 Supabase Realtime activo');
             }
           });
       } catch (err) {
@@ -323,7 +340,7 @@ class CloudStorageService {
     if (!this.pollIntervalTimer) {
       this.pollIntervalTimer = setInterval(() => {
         this.checkCloudUpdates();
-      }, 8000);
+      }, 6000);
     }
 
     if (typeof window !== 'undefined') {
@@ -364,7 +381,7 @@ class CloudStorageService {
           this.lastCloudUpdatedAt = data.updated_at;
           if (data.data) {
             const local = this.getLocalCache();
-            const merged = smartMergeData(data.data as PaecAppData, local, this.deletedIds);
+            const merged = smartMergeData(data.data as PaecAppData, local, this.deletedIds, true);
             this.setLocalCache(merged);
             this.pushSnapshot(merged, 'Actualización por polling');
             this.setStatus('synced', 'Actualizado desde la nube');
@@ -379,9 +396,6 @@ class CloudStorageService {
     return false;
   }
 
-  /**
-   * Guarda cambios realizando Fusión Inteligente previa con los datos de la nube
-   */
   public async saveAll(appData: PaecAppData, immediate = false): Promise<void> {
     this.setLocalCache(appData);
 
@@ -408,14 +422,13 @@ class CloudStorageService {
     if (!supabase) return;
     this.isSavingNow = true;
     try {
-      // 1. Obtener la versión más reciente en la nube para fusionar antes de escribir
       const { data: cloudRow } = await supabase
         .from('sincronizacion_global')
         .select('data')
         .eq('id', 'main')
         .maybeSingle();
 
-      const mergedData = smartMergeData(cloudRow?.data as PaecAppData | null, localData, this.deletedIds);
+      const mergedData = smartMergeData(cloudRow?.data as PaecAppData | null, localData, this.deletedIds, false);
 
       const now = new Date().toISOString();
       const { error } = await supabase
@@ -435,11 +448,11 @@ class CloudStorageService {
         this.lastCloudUpdatedAt = now;
         this.setLocalCache(mergedData);
         this.pushSnapshot(mergedData, 'Guardado automático');
-        this.setStatus('synced', 'Todos los cambios guardados sin sobreescritura');
+        this.setStatus('synced', 'Guardado en la nube sin sobreescritura');
       }
     } catch (err: any) {
       console.error('Excepción al guardar en la nube:', err);
-      this.setStatus('offline', 'Guardado local (sin conexión a internet)');
+      this.setStatus('offline', 'Guardado local');
     } finally {
       setTimeout(() => {
         this.isSavingNow = false;
@@ -447,7 +460,6 @@ class CloudStorageService {
     }
   }
 
-  // --- SISTEMA DE RESPALDOS HISTÓRICOS (SNAPSHOTS) ---
   public getHistorySnapshots(): BackupSnapshot[] {
     try {
       const saved = localStorage.getItem('paec_history_snapshots');
@@ -467,7 +479,6 @@ class CloudStorageService {
         data
       };
 
-      // Conservar los últimos 15 respaldos
       const updated = [newSnap, ...snapshots.slice(0, 14)];
       localStorage.setItem('paec_history_snapshots', JSON.stringify(updated));
     } catch {}

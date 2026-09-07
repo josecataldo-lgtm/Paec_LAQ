@@ -702,6 +702,15 @@ export const App: React.FC = () => {
           syncStatusDetails={syncDetails}
           onManualSync={() => setShowCloudModal(true)}
           onOpenCloudSettings={() => setShowCloudModal(true)}
+          onPullCloudData={async () => {
+            const freshData = await cloudStorage.pullLatestFromCloud();
+            if (freshData) {
+              setEstudiantes(freshData.estudiantes);
+              setHitos(freshData.hitos);
+              setEpisodios(freshData.episodios);
+              setEscuela(freshData.escuela);
+            }
+          }}
         />
 
         {/* Floating Realtime Sync Alert */}
