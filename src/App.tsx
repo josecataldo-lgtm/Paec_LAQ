@@ -218,6 +218,7 @@ export const App: React.FC = () => {
 
   const handleDeleteStudent = (studentId: string) => {
     if (window.confirm('¿Está seguro de eliminar este estudiante y su expediente PAEC?')) {
+      cloudStorage.registerDeletion(studentId);
       const filtered = estudiantes.filter(s => s.id !== studentId);
       setEstudiantes(filtered);
       setHitos(hitos.filter(h => h.estudianteId !== studentId));

@@ -11,7 +11,9 @@ import {
   Globe,
   Save,
   Trash2,
-  Lock
+  Lock,
+  History,
+  RotateCcw
 } from 'lucide-react';
 import { cloudStorage, SyncStatus, PaecAppData } from '../services/cloudStorage';
 import { getActiveSupabaseCredentials, isSupabaseConfigured } from '../services/supabaseClient';
@@ -278,6 +280,40 @@ ALTER PUBLICATION supabase_realtime ADD TABLE sincronizacion_global;`;
             </div>
             <div className="bg-slate-900 text-slate-200 p-2.5 rounded-lg font-mono text-[10px] overflow-x-auto">
               <pre>{sqlQuickCopy}</pre>
+            </div>
+          </div>
+
+          {/* Automatic History Snapshots List */}
+          <div className="space-y-2 border-t border-slate-200 pt-3">
+            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5 text-blue-600" />
+              Historial de Respaldos Automáticos
+            </h4>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2 text-xs">
+              {cloudStorage.getHistorySnapshots().length === 0 ? (
+                <p className="text-slate-500 text-2xs italic">Sin respaldos recientes en este navegador.</p>
+              ) : (
+                cloudStorage.getHistorySnapshots().map((snap) => (
+                  <div key={snap.id} className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                    <div>
+                      <p className="font-bold text-slate-900 text-[11px]">{snap.label}</p>
+                      <p className="text-[10px] text-slate-500">{snap.timestamp} • {snap.data.estudiantes?.length || 0} estudiantes</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`¿Deseas restaurar la copia del ${snap.timestamp}?`)) {
+                          await cloudStorage.saveAll(snap.data, true);
+                          window.location.reload();
+                        }
+                      }}
+                      className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded font-bold text-2xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Restaurar</span>
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
