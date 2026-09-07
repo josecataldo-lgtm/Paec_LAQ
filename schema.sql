@@ -116,6 +116,12 @@ ALTER TABLE hitos_pedagogicos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE episodios_desregulacion ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sincronizacion_global ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Acceso Publico Escuelas" ON escuelas;
+DROP POLICY IF EXISTS "Acceso Publico Estudiantes" ON estudiantes;
+DROP POLICY IF EXISTS "Acceso Publico Hitos" ON hitos_pedagogicos;
+DROP POLICY IF EXISTS "Acceso Publico Episodios" ON episodios_desregulacion;
+DROP POLICY IF EXISTS "Acceso Publico Sincronizacion" ON sincronizacion_global;
+
 CREATE POLICY "Acceso Publico Escuelas" ON escuelas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso Publico Estudiantes" ON estudiantes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso Publico Hitos" ON hitos_pedagogicos FOR ALL USING (true) WITH CHECK (true);

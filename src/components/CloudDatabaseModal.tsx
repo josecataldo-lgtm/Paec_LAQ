@@ -89,7 +89,9 @@ CREATE TABLE IF NOT EXISTS sincronizacion_global (
   client_id TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE sincronizacion_global ADD COLUMN IF NOT EXISTS client_id TEXT;
 ALTER TABLE sincronizacion_global ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso Publico" ON sincronizacion_global;
 CREATE POLICY "Acceso Publico" ON sincronizacion_global FOR ALL USING (true) WITH CHECK (true);
 ALTER TABLE sincronizacion_global REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE sincronizacion_global;`;
