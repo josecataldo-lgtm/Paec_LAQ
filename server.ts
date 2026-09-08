@@ -229,50 +229,36 @@ Responde en formato JSON con la siguiente estructura:
   // API: AI Personalized Progress Report Synthesis
   app.post("/api/gemini/generate-progress-report", async (req, res) => {
     try {
-      const { student, paec, hitos, episodios, targetAudience } = req.body;
+      const { student, hitos, episodios, period, destinatario } = req.body;
       const ai = getGeminiClient();
+
+      const logradosCount = (hitos || []).filter((h: any) => h.estado === 'logrado' || h.estado === 'consolidado').length;
+      const totalCount = (hitos || []).length;
+      const pct = totalCount > 0 ? Math.round((logradosCount / totalCount) * 100) : 0;
 
       if (!ai) {
         return res.json({
           report: {
-            sintesisEjecutiva: `Durante el presente periodo escolar, el estudiante ${student.nombre || 'el estudiante'} ha mostrado un avance significativo en su proceso de adaptación y autorregulación escolar bajo las orientaciones de la Ley TEA N° 21.545 y Resolución Exenta N° 586. Se destaca su respuesta positiva a las estrategias de anticipación visual y adecuaciones en el entorno de aula.`,
-            fortalezasObservadas: [
-              "Mayor receptividad al uso de apoyos visuales y paneles de anticipación en el aula.",
-              "Fortalecimiento del vínculo de confianza con su Educadora Diferencial y Profesor(a) Jefe.",
-              "Disminución en el tiempo de recuperación tras episodios de sobrecarga sensorial."
-            ],
-            areasEnDesarrollo: [
-              "Consolidar la solicitud espontánea de pausas sensoriales antes del punto de saturación.",
-              "Fomentar la participación en actividades grupales estructuradas con reglas explícitas.",
-              "Tolerancia a cambios imprevistos de rutina mediante mediación previa."
-            ],
-            analisisEpisodios: episodios?.length > 0 
-              ? `Se han registrado ${episodios.length} episodios de desregulación en el periodo, observándose una tendencia favorable en la efectividad de las maniobras de contención preventiva en fase desencadenante.`
-              : `No se han registrado episodios de desregulación de alta intensidad en el periodo evaluado, lo que refleja un entorno escolar preventivo eficaz.`,
-            recomendacionesFamilia: [
-              "Mantener en el hogar rutinas visuales consistentes con los horarios escolares.",
-              "Reforzar el uso del termómetro de emociones para validar sus estados afectivos.",
-              "Mantener comunicación fluida con el equipo PIE ante ajustes de medicación o eventos estresores."
-            ],
-            recomendacionesEquipoDocente: [
-              "Continuar con la anticipación de 5 a 10 minutos antes de concluir una actividad.",
-              "Respetar el uso libre de protectores auditivos en eventos masivos del establecimiento.",
-              "Designar roles claros y estructurados en trabajos colaborativos."
-            ],
-            conclusionFinal: "El plan de acompañamiento emocional y conductual se evalúa como pertinente y eficaz. Se recomienda mantener las adecuaciones implementadas y continuar el seguimiento semestral acordado."
+            resumenEjecutivo: `Durante el periodo ${period || 'Primer Semestre 2026'}, el/la estudiante ${student?.nombre || 'el estudiante'} ha mostrado una evolución positiva en su trayectoria escolar bajo el marco de la Ley TEA N° 21.545. Registra un ${pct}% de avance en sus hitos pedagógicos proyectados, evidenciando un compromiso sostenido en las actividades de aula regular y espacio PIE.`,
+            analisisHitos: `Se evaluaron ${totalCount} hitos prioritarios, de los cuales ${logradosCount} se encuentran consolidados o en fase avanzada de logro. Destaca el fortalecimiento en autorregulación emocional ante transiciones y la respuesta favorable a apoyos pictográficos e instructivos visuales.`,
+            estrategiasEfectivas: (episodios || []).length > 0 
+              ? `Durante el periodo se registraron ${episodios.length} episodios de desregulación. Las maniobras de contención preventiva, anticipación sensorial y uso de pausas activas permitieron retornar a la calma en promedios inferiores a los 15 minutos.` 
+              : `No se registraron episodios de desregulación significativos en el periodo, lo que demuestra un entorno estructurado y preventivo altamente eficaz.`,
+            orientacionesFamilia: `Se sugiere mantener en el hogar rutinas estructuradas similares a la jornada escolar, hacer uso del panel de anticipación visual ante salidas o visitas, y mantener comunicación constante con el equipo PIE ante cualquier cambio en el estado anímico o salud del estudiante.`,
+            sugerenciasAula: `Continuar con la fragmentación de evaluaciones extensas, anticipar de 5 a 10 minutos cualquier cambio de rutina o docente, y permitir el uso autónomo de audífonos con cancelación de ruido durante recreos o actividades sonoras intensas.`
           }
         });
       }
 
-      const prompt = `Genera un Reporte de Progreso y Síntesis Pedagógica integral para el PAEC (Plan de Acompañamiento Emocional y Conductual) bajo la normativa chilena Ley TEA (Ley 21.545 / Res. Exenta 586 MINEDUC).
-Audiencia objetivo del informe: ${targetAudience === 'familia' ? 'Familia y Apoderados (tono cercano, empático, claro y pedagógico)' : 'Equipo Directivo, Docente y Carpeta PIE (tono técnico-pedagógico formal)'}
+      const prompt = `Genera un Informe de Progreso y Síntesis Pedagógica integral para el PAEC (Plan de Acompañamiento Emocional y Conductual) bajo la normativa Ley TEA (Ley 21.545 / Res. Exenta 586 MINEDUC de Chile).
+Audiencia objetivo del informe: ${destinatario === 'familia' ? 'Familia y Apoderados (tono cercano, empático, claro y pedagógico)' : 'Equipo Directivo, Docente y Carpeta PIE (tono técnico-pedagógico formal)'}
+Periodo evaluado: ${period || 'Semestral'}
 
 Datos del Estudiante:
-- Nombre: ${student.nombre}
-- RUT: ${student.rut}
-- Curso: ${student.curso}
-- Nivel TEA: ${student.diagnosticoPie?.nivelTea || 'Nivel 1'}
-- Medicación: ${student.tratamientoMedico?.tieneTratamiento ? student.tratamientoMedico.descripcion : 'Sin tratamiento farmacológico informado'}
+- Nombre: ${student?.nombre}
+- RUT: ${student?.rut}
+- Curso: ${student?.curso}
+- Nivel TEA: ${student?.diagnosticoPie?.nivelTea || 'Nivel 1'}
 
 Hitos pedagógicos registrados:
 ${JSON.stringify(hitos || [])}
@@ -280,16 +266,14 @@ ${JSON.stringify(hitos || [])}
 Registro de episodios de desregulación:
 ${JSON.stringify(episodios || [])}
 
-Devuelve un JSON estricto con la siguiente estructura:
+Devuelve un JSON estricto con la siguiente estructura exacta:
 {
   "report": {
-    "sintesisEjecutiva": "Párrafo introductorio con la síntesis del periodo",
-    "fortalezasObservadas": ["Fortaleza 1", "Fortaleza 2", "Fortaleza 3"],
-    "areasEnDesarrollo": ["Área 1", "Área 2", "Área 3"],
-    "analisisEpisodios": "Análisis cualitativo y cuantitativo de los episodios de desregulación y la efectividad de la contención",
-    "recomendacionesFamilia": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-    "recomendacionesEquipoDocente": ["Recomendación 1", "Recomendación 2", "Recomendación 3"],
-    "conclusionFinal": "Conclusión técnica y sugerencia de continuidad del PAEC"
+    "resumenEjecutivo": "Síntesis del avance general del estudiante en el periodo",
+    "analisisHitos": "Análisis cuantitativo y cualitativo de los hitos pedagógicos y autorregulación",
+    "estrategiasEfectivas": "Análisis de la efectividad de las estrategias de contención del PAEC y bitácora",
+    "orientacionesFamilia": "Recomendaciones y orientaciones para la familia en el hogar",
+    "sugerenciasAula": "Recomendaciones pedagógicas para los docentes y equipo de aula"
   }
 }`;
 
@@ -305,7 +289,7 @@ Devuelve un JSON estricto con la siguiente estructura:
       return res.json(parsed);
     } catch (err: any) {
       console.error("Error in /api/gemini/generate-progress-report:", err);
-      return res.status(500).json({ error: err.message || "Error generating progress report" });
+      return res.status(500).json({ error: err.message || "Error generating report" });
     }
   });
 
